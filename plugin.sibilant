@@ -3,28 +3,48 @@
         async    (require 'async)
         fs       (require 'fs))
 
-(defvar plugin {})
+(defmacro extend (dest src)
+  (concat
+    "for(var prop in "
+    (translate src)
+    " ){\n "
+    "var desc;"
+    (indent (concat "if(desc = Object.getOwnPropertyDescriptor(" (translate src) ", prop)){")
+      (indent (concat "Object.defineProperty(" (translate dest) ", prop, desc);"))
+      (concat "} else if(" (translate src) ".hasOwnProperty(prop)){")
+      (indent (concat (translate dest)
+      "[prop] = " (translate src) "[prop];"))
+      "}")
+    "}"))
+(defun plugin ())
 (defvar content {})
 
-(defun content.get-filename ()
-  (content.filename.replace (regex 'sibilant 'js)))
+(defun plugin.get-filename ()
+  (content.*filename.replace (regex 'sibilant) 'js))
 
-(defun content.render (locals contents templates fn)
-  (defvar js (sibilant.translate-all content.text))
+(defun plugin.render (locals contents templates fn)
+  (defvar js (sibilant.translate-all content.*text))
   (fn null (new (Buffer js))))
 
-(defun plugin.init (filename base text)
-  (set content
-    'filename filename
-    'base base
-    'text text) content)
+(defun plugin.init (context filename base text)
+  (extend content context.ContentPlugin.prototype)
+  (setf
+     content.get-filename plugin.get-filename
+     content.render plugin.render
+     content.*filename filename
+     content.*base base
+     content.*text text)
+  content)
 
-(defun plugin.from-file (filename base fn)
-  (fs.read-file (path.join base filename) (lambda (error buffer)
-    (if error
-      (fn error)
-      (fn null (plugin.init filename base (buffer.to-string)))))))
+(defun init-plugin (context)
+  (defun plugin.from-file (filename base fn)
+    (fs.read-file (path.join base filename) (lambda (error buffer)
+      (if error
+        (fn error)
+        (fn null (plugin.init context filename base (buffer.to-string)))))))
+    plugin)
 
 (set module 'exports (lambda (wintersmith fn)
-  (wintersmith.register-content-plugin 'sibilant', "**/*.sibilant", plugin)
+  (wintersmith.register-content-plugin 'sibilant', "**/*.sibilant", (init-plugin wintersmith))
   (fn)))
+
