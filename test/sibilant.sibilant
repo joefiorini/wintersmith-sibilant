@@ -1,0 +1,38 @@
+(defvar wintersmith (require 'wintersmith)
+        expect      (get (require 'chai) 'expect)
+        ws-sibilant (require "./../"))
+
+(alias-macro lambda ->)
+
+(defmacro =? (expected actual)
+  (concat
+    "expect("
+    (translate actual)
+    ").to.equal("
+    (translate expected)
+    ");"))
+
+(defun trim (str)
+  (str.trim))
+
+(defmacro before-each (&rest body)
+  (concat
+    "test.before = function(done){"
+      "console.log(arguments);"
+      (translate body)
+    "}"))
+
+(defvar test {})
+
+(defun test.before (done) (ws-sibilant wintersmith done))
+
+(set test
+  "compiles sibilant" (-> (done)
+    (wintersmith.ContentTree.from-directory
+      "test/contents/js" **dirname (-> (err tree)
+        (send (get tree "main.sibilant") render null null null (-> (err content)
+          (if (and (defined? content) (!= null content))
+            (=? "var a = (1 + 1);" (trim (content.toString))))
+          (done)))))))
+
+(setf module.exports test)

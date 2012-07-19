@@ -1,0 +1,30 @@
+(defvar sibilant (require 'sibilant)
+        path     (require 'path)
+        async    (require 'async)
+        fs       (require 'fs))
+
+(defvar plugin {})
+(defvar content {})
+
+(defun content.get-filename ()
+  (content.filename.replace (regex 'sibilant 'js)))
+
+(defun content.render (locals contents templates fn)
+  (defvar js (sibilant.translate-all content.text))
+  (fn null (new (Buffer js))))
+
+(defun plugin.init (filename base text)
+  (set content
+    'filename filename
+    'base base
+    'text text) content)
+
+(defun plugin.from-file (filename base fn)
+  (fs.read-file (path.join base filename) (lambda (error buffer)
+    (if error
+      (fn error)
+      (fn null (plugin.init filename base (buffer.to-string)))))))
+
+(set module 'exports (lambda (wintersmith fn)
+  (wintersmith.register-content-plugin 'sibilant', "**/*.sibilant", plugin)
+  (fn)))
