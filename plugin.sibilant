@@ -3,6 +3,9 @@
         async    (require 'async)
         fs       (require 'fs))
 
+(defun include (file)
+  (macros.include (path.join sibilant.dir file)))
+
 (defmacro extend (dest src)
   (concat
     "for(var prop in "
