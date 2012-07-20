@@ -16,27 +16,30 @@
       "[prop] = " (translate src) "[prop];"))
       "}")
     "}"))
-(defun plugin ())
-(defvar content {})
-
-(defun plugin.get-filename ()
-  (content.*filename.replace (regex 'sibilant) 'js))
-
-(defun plugin.render (locals contents templates fn)
-  (defvar js (sibilant.translate-all content.*text))
-  (fn null (new (Buffer js))))
-
-(defun plugin.init (context filename base text)
-  (extend content context.ContentPlugin.prototype)
-  (setf
-     content.get-filename plugin.get-filename
-     content.render plugin.render
-     content.*filename filename
-     content.*base base
-     content.*text text)
-  content)
 
 (defun init-plugin (context)
+
+  (defvar plugin {})
+  (defun plugin.init (context filename base text)
+
+    (defvar content {})
+    (extend content context.ContentPlugin.prototype)
+    (setf
+       content.*filename filename
+       content.*base base
+       content.*text text)
+
+    (defun content.get-filename ()
+      (content.*filename.replace (regex 'sibilant) 'js))
+
+    (defun content.render (locals contents templates fn)
+      (console.log "in render: " content.*filename)
+      (defvar js (sibilant.translate-file
+        (path.join content.*base content.*filename)))
+      (fn null (new (Buffer js))))
+
+    content)
+
   (defun plugin.from-file (filename base fn)
     (fs.read-file (path.join base filename) (lambda (error buffer)
       (if error
